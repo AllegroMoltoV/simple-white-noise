@@ -4,13 +4,15 @@
 
 An audio source plugin for OBS Studio that plays white noise. Add "White Noise" from the source list and adjust its level in the properties.
 
-## 通信とデータ / Network and data
+[配信プラグイン倉庫くん](https://soko-kun.allegromoltov.jp/plugins/allegromoltov/simple-white-noise) にも掲載しています。 / Also listed on [Plugin Soko-kun](https://soko-kun.allegromoltov.jp/plugins/allegromoltov/simple-white-noise?lang=en).
+
+## Network and data / 通信とデータ
 
 このプラグインはネットワークへ何も送信しません。音声はプラグインの中で生成し、外部のファイルやサービスを使いません。
 
 This plugin sends nothing over the network. It generates the audio inside the plugin and uses no external files or services.
 
-## 機能 / Features
+## Features / 機能
 
 - ステレオのホワイトノイズを出力します。左右のチャンネルは独立したノイズです。
 - 「レベル」で、ノイズのピークのレベルを -60 dB から 0 dB の範囲で設定できます。既定値は -20 dB です。
@@ -20,7 +22,7 @@ This plugin sends nothing over the network. It generates the audio inside the pl
 - "Level" sets the peak level of the noise from -60 dB to 0 dB. The default is -20 dB.
 - The audio mixer's volume, mute, and monitoring settings work as for any other audio source.
 
-## 動作環境 / Requirements
+## Requirements / 動作環境
 
 - OBS Studio 31.1.1 以降 / OBS Studio 31.1.1 or later
 - Windows 10 / 11 (x64)、Ubuntu 24.04 (x86_64)
@@ -29,7 +31,7 @@ macOS 版は配布しません。
 
 There is no macOS release.
 
-## 導入 / Installation
+## Installation / 導入
 
 ### Windows
 
@@ -45,17 +47,17 @@ There is no macOS release.
 
 ### Ubuntu
 
-Releases の `simple-white-noise-<version>-x86_64-linux-gnu.deb` を、パッケージマネージャーで導入します。
+Ubuntu では、Releases の `simple-white-noise-<version>-x86_64-linux-gnu.deb` を `sudo apt install ./<ファイル名>` で導入します。この .deb は、OBS Studio の公式の PPA (`ppa:obsproject/obs-studio`) から apt で導入した OBS Studio を前提にしています。
 
-Install `simple-white-noise-<version>-x86_64-linux-gnu.deb` from Releases with your package manager.
+On Ubuntu, install `simple-white-noise-<version>-x86_64-linux-gnu.deb` from Releases with `sudo apt install ./<file name>`. The package expects OBS Studio installed with apt from the official PPA (`ppa:obsproject/obs-studio`).
 
-### アンインストール / Uninstalling
+### Uninstalling / アンインストール
 
 Windows では `C:\ProgramData\obs-studio\plugins\simple-white-noise` フォルダーを削除します。
 
 On Windows, delete the `C:\ProgramData\obs-studio\plugins\simple-white-noise` folder.
 
-## ダウンロードしたファイルの検証 / Verifying downloads
+## Verifying downloads / ダウンロードしたファイルの検証
 
 リリースのファイルには、GitHub Actions でビルドしたことを示す build provenance の証明を付けています。[GitHub CLI](https://cli.github.com/) で確かめられます。
 
@@ -69,7 +71,7 @@ gh attestation verify simple-white-noise-1.0.0-windows-x64.zip --repo AllegroMol
 
 The SHA-256 of each file is shown next to it on the release page.
 
-## ソースからのビルド / Building from source
+## Building from source / ソースからのビルド
 
 [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate) の手順と同じです。Windows では Visual Studio 2022 で次を実行します。
 
@@ -85,19 +87,19 @@ ctest --test-dir build_x64 -C RelWithDebInfo --output-on-failure
 
 `ctest` runs a scenario test that loads the plugin into libobs, creates the source, and checks the level and properties of the audio it outputs. CI runs the same test on Windows and Ubuntu.
 
-## 生成 AI の利用 / Use of AI
+## Use of AI / 生成 AI の利用
 
 このプラグインのコードと文書は、Claude Code (Anthropic) を使って作成しました。
 
 The code and documents of this plugin were written with Claude Code (Anthropic).
 
-## ライセンス / License
+## License / ライセンス
 
 GPL-2.0-or-later。詳細は [LICENSE](LICENSE) を参照してください。
 
 GPL-2.0-or-later. See [LICENSE](LICENSE).
 
-## 更新情報 / Changelog
+## Changelog / 更新情報
 
 ### 1.0.0
 
