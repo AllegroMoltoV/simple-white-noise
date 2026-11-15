@@ -1,0 +1,104 @@
+name: Audio scenario test
+# Loads the plugin into libobs on Windows and Ubuntu, creates the white noise source, and checks the audio it outputs.
+# No graphics are needed. On Ubuntu, xvfb-run provides the X display that libobs expects for hotkeys.
+# audio-test exits with 0 on pass, 1 on a failed check, and 2 when it cannot start.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+permissions:
+  contents: read
+env:
+  PLUGIN_NAME: simple-white-noise
+  OBS_VERSION: 31.1.1
+  # Keep this list equal to AUDIO_TEST_SCENARIOS in CMakeLists.txt
+  SCENARIOS: default-level level-change
+jobs:
+  windows-audio:
+    name: Audio test on Windows
+    runs-on: windows-2022
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build plugin and audio test
+        uses: ./.github/actions/build-plugin
+        with:
+          target: x64
+          config: RelWithDebInfo
+
+      - name: Run audio scenario test
+        run: |
+          ctest --test-dir build_x64 -C RelWithDebInfo -V --no-tests=error 2>&1 | Tee-Object -FilePath audio-windows.log
+          exit $LASTEXITCODE
+
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: audio-windows
+          path: audio-windows.log
+          if-no-files-found: warn
+
+  ubuntu-audio:
+    name: Audio test on Ubuntu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build plugin
+        uses: ./.github/actions/build-plugin
+        with:
+          target: x86_64
+          config: RelWithDebInfo
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth libx11-dev
+
+      - name: Build audio test
+        run: |
+          cmake -S . -B build_x86_64 -DENABLE_AUDIO_TESTS=ON
+          cmake --build build_x86_64 --config RelWithDebInfo --target audio-test
+
+      - name: Run audio scenario test
+        run: |
+          plugin=$(find "$PWD/build_x86_64" -name "${PLUGIN_NAME}.so" -print -quit)
+          test=$(find "$PWD/build_x86_64" -name 'audio-test' -type f -print -quit)
+          echo "plugin=${plugin} test=${test}"
+          failed=0
+          for scenario in ${SCENARIOS}; do
+            if xvfb-run -a "${test}" "${plugin}" "$PWD/data" "${scenario}" >> audio-ubuntu.log 2>&1; then
+              echo "PASS ${scenario}" | tee -a audio-ubuntu.log
+            else
+              echo "FAIL ${scenario}" | tee -a audio-ubuntu.log
+              failed=1
+            fi
+          done
+          cat audio-ubuntu.log
+          exit ${failed}
+
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: audio-ubuntu
+          path: audio-ubuntu.log
+          if-no-files-found: warn
