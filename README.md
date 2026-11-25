@@ -1,18 +1,20 @@
 # シンプルホワイトノイズ / Simple White Noise
 
-ホワイトノイズを鳴らす OBS Studio の音声ソースのプラグインです。ソースの一覧から「ホワイトノイズ」を追加し、プロパティでノイズのレベルを調整できます。
+ホワイトノイズの音と、テレビの砂嵐のようなホワイトノイズの映像を出す OBS Studio のプラグインです。ソースの一覧に「ホワイトノイズ(音声)」と「ホワイトノイズ(映像)」の 2 つが加わります。音と映像は別のソースで、必要なほうを追加します。
 
-An audio source plugin for OBS Studio that plays white noise. Add "White Noise" from the source list and adjust its level in the properties.
+A plugin for OBS Studio that outputs white noise as sound and as video that looks like TV static. It adds two sources to the source list, "White Noise (Audio)" and "White Noise (Video)". Sound and video are separate sources, so add the one you need.
 
 [配信プラグイン倉庫くん](https://soko-kun.allegromoltov.jp/plugins/allegromoltov/simple-white-noise) にも掲載しています。 / Also listed on [Plugin Soko-kun](https://soko-kun.allegromoltov.jp/plugins/allegromoltov/simple-white-noise?lang=en).
 
 ## Network and data / 通信とデータ
 
-このプラグインはネットワークへ何も送信しません。音声はプラグインの中で生成し、外部のファイルやサービスを使いません。
+このプラグインはネットワークへ何も送信しません。音声と映像はプラグインの中で生成し、外部のファイルやサービスを使いません。
 
-This plugin sends nothing over the network. It generates the audio inside the plugin and uses no external files or services.
+This plugin sends nothing over the network. It generates the audio and video inside the plugin and uses no external files or services.
 
 ## Features / 機能
+
+### ホワイトノイズ(音声) / White Noise (Audio)
 
 - ステレオのホワイトノイズを出力します。左右のチャンネルは独立したノイズです。
 - 「レベル」で、ノイズのピークのレベルを -60 dB から 0 dB の範囲で設定できます。既定値は -20 dB です。
@@ -21,6 +23,16 @@ This plugin sends nothing over the network. It generates the audio inside the pl
 - Outputs stereo white noise. The left and right channels carry independent noise.
 - "Level" sets the peak level of the noise from -60 dB to 0 dB. The default is -20 dB.
 - The audio mixer's volume, mute, and monitoring settings work as for any other audio source.
+
+### ホワイトノイズ(映像) / White Noise (Video)
+
+- 白黒の砂嵐を、フレームごとに新しく描きます。描画は GPU で行います。
+- 既定ではキャンバスの大きさに合わせます。「キャンバスの大きさに合わせる」を外すと、幅と高さを指定できます。
+- このソースからは音が出ません。音も必要なときは、「ホワイトノイズ(音声)」を別に追加します。
+
+- Draws black and white static, new in every frame. The GPU does the drawing.
+- By default it matches the canvas size. Turn off "Match canvas size" to set the width and height.
+- This source makes no sound. To add sound, add a "White Noise (Audio)" source as well.
 
 ## Requirements / 動作環境
 
@@ -38,12 +50,12 @@ There is no macOS release.
 1. [Releases](https://github.com/AllegroMoltoV/simple-white-noise/releases) から `simple-white-noise-<version>-windows-x64.zip` をダウンロードします。
 2. OBS Studio を終了します。
 3. zip の中の `simple-white-noise` フォルダーを `C:\ProgramData\obs-studio\plugins` に置きます。配置後の DLL のパスは `C:\ProgramData\obs-studio\plugins\simple-white-noise\bin\64bit\simple-white-noise.dll` です。
-4. OBS Studio を起動し、ソースの「+」から「ホワイトノイズ」を追加します。
+4. OBS Studio を起動し、ソースの「+」から「ホワイトノイズ(音声)」または「ホワイトノイズ(映像)」を追加します。
 
 1. Download `simple-white-noise-<version>-windows-x64.zip` from [Releases](https://github.com/AllegroMoltoV/simple-white-noise/releases).
 2. Quit OBS Studio.
 3. Put the `simple-white-noise` folder from the zip into `C:\ProgramData\obs-studio\plugins`. The DLL ends up at `C:\ProgramData\obs-studio\plugins\simple-white-noise\bin\64bit\simple-white-noise.dll`.
-4. Start OBS Studio and add "White Noise" with the "+" button of the Sources dock.
+4. Start OBS Studio and add "White Noise (Audio)" or "White Noise (Video)" with the "+" button of the Sources dock.
 
 ### Ubuntu
 
@@ -64,7 +76,7 @@ On Windows, delete the `C:\ProgramData\obs-studio\plugins\simple-white-noise` fo
 Every release file has a build provenance attestation made by GitHub Actions. You can verify it with the [GitHub CLI](https://cli.github.com/):
 
 ```
-gh attestation verify simple-white-noise-1.0.1-windows-x64.zip --repo AllegroMoltoV/simple-white-noise
+gh attestation verify simple-white-noise-1.1.0-windows-x64.zip --repo AllegroMoltoV/simple-white-noise
 ```
 
 各ファイルの SHA-256 は、リリースのページの各ファイルの横に表示されます。
@@ -80,12 +92,23 @@ The steps are the same as for [obs-plugintemplate](https://github.com/obsproject
 ```
 cmake --preset windows-x64
 cmake --build build_x64 --config RelWithDebInfo
+cmake --build .deps/obs-studio-31.1.1/build_x64 --config Release --target libobs-d3d11 libobs-opengl
 ctest --test-dir build_x64 -C RelWithDebInfo --output-on-failure
 ```
 
-`ctest` は、libobs にプラグインを読み込んでソースを作り、出力される音声のレベルと性質を確かめるシナリオテストを実行します。Windows では、ソースが音声を出している間のプロセスの CPU 使用率も確かめます。CI では同じテストを Windows と Ubuntu で実行し、CPU 使用率の確認は Windows だけで行います。
+3 行目は、映像のテストが使う Direct3D 11 と OpenGL の描画モジュールをビルドします。`ctest` は、libobs にプラグインを読み込んでソースを作る 2 種類のシナリオテストを実行します。
 
-`ctest` runs a scenario test that loads the plugin into libobs, creates the source, and checks the level and properties of the audio it outputs. On Windows, it also checks the CPU usage of the process while the source outputs audio. CI runs the same test on Windows and Ubuntu, and checks the CPU usage on Windows only.
+- 音声のテスト (`audio-*`) は、出力される音声のレベルと性質を確かめます。Windows では、ソースが音声を出している間のプロセスの CPU 使用率も確かめます。
+- 映像のテスト (`render-*`) は、描いた画素の明るさの分布、隣の画素との相関、フレームごとの変化、大きさの設定を、Direct3D 11 と OpenGL の両方で確かめます。環境変数 `RENDER_TEST_OUTPUT_DIR` にフォルダーを指定すると、描いた画像を BMP で保存します。
+
+CI では、音声のテストを Windows と Ubuntu で、映像のテストを Windows の Direct3D 11 と Ubuntu の OpenGL で実行します。CPU 使用率の確認は Windows だけで行います。
+
+The third line builds the Direct3D 11 and OpenGL graphics modules that the video tests use. `ctest` runs two kinds of scenario tests that load the plugin into libobs and create the sources.
+
+- The audio tests (`audio-*`) check the level and properties of the audio the source outputs. On Windows, they also check the CPU usage of the process while the source outputs audio.
+- The video tests (`render-*`) check the distribution of pixel levels, the correlation with neighboring pixels, the change between frames, and the size settings, with both Direct3D 11 and OpenGL. Set the environment variable `RENDER_TEST_OUTPUT_DIR` to a folder to save the rendered images as BMP files.
+
+CI runs the audio tests on Windows and Ubuntu, and the video tests with Direct3D 11 on Windows and OpenGL on Ubuntu. It checks the CPU usage on Windows only.
 
 ## Use of AI / 生成 AI の利用
 
@@ -100,6 +123,11 @@ GPL-2.0-or-later。詳細は [LICENSE](LICENSE) を参照してください。
 GPL-2.0-or-later. See [LICENSE](LICENSE).
 
 ## Changelog / 更新情報
+
+### 1.1.0
+
+- テレビの砂嵐のような映像を出す「ホワイトノイズ(映像)」のソースを追加しました / Added the "White Noise (Video)" source, which outputs video that looks like TV static
+- 音声のソースの表示名を「ホワイトノイズ(音声)」に変えました。既存のシーンのソースはそのまま使えます / Renamed the audio source to "White Noise (Audio)". Sources in existing scenes keep working
 
 ### 1.0.1
 
