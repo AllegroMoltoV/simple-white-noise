@@ -36,12 +36,12 @@ This plugin sends nothing over the network. It generates the audio and video ins
 
 ## Requirements / 動作環境
 
-- OBS Studio 31.1.1 以降 / OBS Studio 31.1.1 or later
-- Windows 10 / 11 (x64)、Ubuntu 24.04 (x86_64)
+- Windows 10 / 11 (x64): OBS Studio 33 以降 / OBS Studio 33 or later
+- Ubuntu 24.04 (x86_64): OBS Studio 31.1.1 以降 / OBS Studio 31.1.1 or later
 
-macOS 版は配布しません。
+Windows の配布物は、1.1.1 から OBS Studio 33 のプラグインの配置に合わせています。Windows で OBS Studio 32 以前を使う場合は、旧い配置の [1.1.0](https://github.com/AllegroMoltoV/simple-white-noise/releases/tag/v1.1.0) を使ってください。macOS 版は配布しません。
 
-There is no macOS release.
+From 1.1.1, the Windows package follows the plugin layout of OBS Studio 33. On Windows with OBS Studio 32 or earlier, use [1.1.0](https://github.com/AllegroMoltoV/simple-white-noise/releases/tag/v1.1.0), which has the older layout. There is no macOS release.
 
 ## Installation / 導入
 
@@ -49,13 +49,17 @@ There is no macOS release.
 
 1. [Releases](https://github.com/AllegroMoltoV/simple-white-noise/releases) から `simple-white-noise-<version>-windows-x64.zip` をダウンロードします。
 2. OBS Studio を終了します。
-3. zip の中の `simple-white-noise` フォルダーを `C:\ProgramData\obs-studio\plugins` に置きます。配置後の DLL のパスは `C:\ProgramData\obs-studio\plugins\simple-white-noise\bin\64bit\simple-white-noise.dll` です。
+3. zip の中の `simple-white-noise` フォルダーを `C:\ProgramData\obs-studio\plugins` に置きます。配置後の DLL のパスは `C:\ProgramData\obs-studio\plugins\simple-white-noise\simple-white-noise.dll` です。
 4. OBS Studio を起動し、ソースの「+」から「ホワイトノイズ(音声)」または「ホワイトノイズ(映像)」を追加します。
 
 1. Download `simple-white-noise-<version>-windows-x64.zip` from [Releases](https://github.com/AllegroMoltoV/simple-white-noise/releases).
 2. Quit OBS Studio.
-3. Put the `simple-white-noise` folder from the zip into `C:\ProgramData\obs-studio\plugins`. The DLL ends up at `C:\ProgramData\obs-studio\plugins\simple-white-noise\bin\64bit\simple-white-noise.dll`.
+3. Put the `simple-white-noise` folder from the zip into `C:\ProgramData\obs-studio\plugins`. The DLL ends up at `C:\ProgramData\obs-studio\plugins\simple-white-noise\simple-white-noise.dll`.
 4. Start OBS Studio and add "White Noise (Audio)" or "White Noise (Video)" with the "+" button of the Sources dock.
+
+1.1.0 以前から更新するときも、同じ手順でフォルダーを上書きします。1.1.0 以前の DLL は `simple-white-noise\bin\64bit` にあります。OBS Studio 33 は、新しい配置の DLL を読み込めた場合、同じプラグインの旧い配置を読み込みません。更新の後は `simple-white-noise\bin` フォルダーを削除してかまいません。
+
+To update from 1.1.0 or earlier, overwrite the folder in the same way. Those versions keep the DLL in `simple-white-noise\bin\64bit`. When OBS Studio 33 loads the DLL from the new layout, it skips the same plugin in the older layout. You can delete the `simple-white-noise\bin` folder after the update.
 
 ### Ubuntu
 
@@ -76,7 +80,7 @@ On Windows, delete the `C:\ProgramData\obs-studio\plugins\simple-white-noise` fo
 Every release file has a build provenance attestation made by GitHub Actions. You can verify it with the [GitHub CLI](https://cli.github.com/):
 
 ```
-gh attestation verify simple-white-noise-1.1.0-windows-x64.zip --repo AllegroMoltoV/simple-white-noise
+gh attestation verify simple-white-noise-1.1.1-windows-x64.zip --repo AllegroMoltoV/simple-white-noise
 ```
 
 各ファイルの SHA-256 は、リリースのページの各ファイルの横に表示されます。
@@ -123,6 +127,10 @@ GPL-2.0-or-later。詳細は [LICENSE](LICENSE) を参照してください。
 GPL-2.0-or-later. See [LICENSE](LICENSE).
 
 ## Changelog / 更新情報
+
+### 1.1.1
+
+- Windows の配布物を OBS Studio 33 のプラグインの配置に合わせました。DLL はプラグインのフォルダーの直下に入ります。Windows で OBS Studio 32 以前を使う場合は 1.1.0 を使ってください / The Windows package now follows the plugin layout of OBS Studio 33, with the DLL directly in the plugin folder. On Windows with OBS Studio 32 or earlier, use 1.1.0
 
 ### 1.1.0
 
