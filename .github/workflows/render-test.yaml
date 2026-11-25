@@ -1,0 +1,127 @@
+name: Render test
+# Renders the white noise video source headless with libobs and checks the pixels.
+# - Windows: Direct3D 11. Runners have no GPU, so DXGI uses its software adapter (WARP).
+# - Ubuntu: OpenGL on Mesa llvmpipe under Xvfb.
+# There is no macOS release, so macOS is not tested.
+# render-test exits with 0 on pass, 1 on a failed check, and 2 when it cannot start.
+# PLUGIN_NAME must equal "name" in buildspec.json, and OBS_VERSION dependencies.obs-studio.version.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'CMakeLists.txt'
+      - 'src/**'
+      - 'data/**'
+      - 'tests/**'
+      - '.github/workflows/render-test.yaml'
+permissions:
+  contents: read
+env:
+  PLUGIN_NAME: simple-white-noise
+  OBS_VERSION: 31.1.1
+  # Keep this list equal to RENDER_TEST_SCENARIOS in CMakeLists.txt
+  SCENARIOS: noise-stats changes-each-frame custom-size
+jobs:
+  windows-render:
+    name: Render on Windows (D3D11)
+    runs-on: windows-2022
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build plugin and render test
+        uses: ./.github/actions/build-plugin
+        with:
+          target: x64
+          config: RelWithDebInfo
+
+      # The graphics modules are not dependencies of the plugin, so build the one the test uses
+      - name: Build D3D11 module
+        run: cmake --build ".deps/obs-studio-$env:OBS_VERSION/build_x64" --config Release --target libobs-d3d11
+
+      - name: Render
+        run: |
+          New-Item -ItemType Directory -Path test-images | Out-Null
+          $env:RENDER_TEST_OUTPUT_DIR = "$PWD\test-images"
+          ctest --test-dir build_x64 -C RelWithDebInfo -R d3d11 --output-on-failure --no-tests=error 2>&1 |
+            Tee-Object -FilePath render-windows.log
+          exit $LASTEXITCODE
+
+      - name: Upload render log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: render-windows
+          path: |
+            render-windows.log
+            test-images
+          if-no-files-found: warn
+
+  ubuntu-render:
+    name: Render on Ubuntu (Mesa OpenGL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      # The OBS PPA intermittently returns 503, so make apt retry failed downloads
+      - name: Retry apt downloads
+        run: echo 'Acquire::Retries "10";' | sudo tee /etc/apt/apt.conf.d/80-retries
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build plugin
+        uses: ./.github/actions/build-plugin
+        with:
+          target: x86_64
+          config: RelWithDebInfo
+
+      - name: Install render dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth libgl1-mesa-dri libegl-mesa0 libx11-dev
+
+      - name: Build render test
+        run: |
+          cmake -S . -B build_x86_64 -DENABLE_RENDER_TESTS=ON
+          cmake --build build_x86_64 --config RelWithDebInfo --target render-test
+
+      # libobs-opengl and the libobs data come from the obs-studio package that the template installs from the PPA
+      - name: Render
+        run: |
+          plugin=$(find "$PWD/build_x86_64" -name "${PLUGIN_NAME}.so" -print -quit)
+          test=$(find "$PWD/build_x86_64" -name 'render-test' -type f -print -quit)
+          gl=$(find /usr/lib -name 'libobs-opengl.so*' -print -quit)
+          echo "plugin=${plugin} test=${test} gl=${gl}"
+          mkdir -p test-images
+          export RENDER_TEST_OUTPUT_DIR="$PWD/test-images"
+          failed=0
+          for scenario in ${SCENARIOS}; do
+            if xvfb-run -a -s '-screen 0 1280x720x24' "${test}" "${plugin}" "$PWD/data" "${gl}" \
+              /usr/share/obs/libobs "${scenario}" >> render-ubuntu.log 2>&1; then
+              echo "PASS ${scenario}" | tee -a render-ubuntu.log
+            else
+              echo "FAIL ${scenario}" | tee -a render-ubuntu.log
+              failed=1
+            fi
+          done
+          exit ${failed}
+
+      - name: Upload render log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: render-ubuntu
+          path: |
+            render-ubuntu.log
+            test-images
+          if-no-files-found: warn

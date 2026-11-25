@@ -38,9 +38,10 @@ jobs:
           target: x64
           config: RelWithDebInfo
 
+      # The render tests need the graphics modules, which this job does not build. render-test.yaml runs them.
       - name: Run audio scenario test
         run: |
-          ctest --test-dir build_x64 -C RelWithDebInfo -V --no-tests=error 2>&1 | Tee-Object -FilePath audio-windows.log
+          ctest --test-dir build_x64 -C RelWithDebInfo -R audio -V --no-tests=error 2>&1 | Tee-Object -FilePath audio-windows.log
           exit $LASTEXITCODE
 
       - name: Upload log
