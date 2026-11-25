@@ -49,6 +49,11 @@ endif()
 # The test is always built on Windows. On Linux, the CI workflow (audio-test.yaml) turns it on.
 option(ENABLE_AUDIO_TESTS "Build the audio scenario test on Linux" OFF)
 set(AUDIO_TEST_SCENARIOS default-level level-change)
+# cpu-usage checks that the generator thread does not busy-wait. Only the Windows libobs busy-waits in
+# os_sleepto_ns, so the scenario runs on Windows only and audio-test.yaml does not list it for Ubuntu.
+if(WIN32)
+  list(APPEND AUDIO_TEST_SCENARIOS cpu-usage)
+endif()
 if(WIN32 OR ENABLE_AUDIO_TESTS)
   add_executable(audio-test tests/audio-test.cpp)
   target_compile_features(audio-test PRIVATE cxx_std_17)

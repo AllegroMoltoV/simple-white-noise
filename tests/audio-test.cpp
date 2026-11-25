@@ -7,7 +7,18 @@
 // Scenarios:
 //   default-level  The source with default settings outputs noise at -20 dB peak level on both channels.
 //   level-change   Changing the level setting changes the output level accordingly.
+//   cpu-usage      While the source outputs audio, the process uses less than 5% of one CPU core. Windows only.
 // Exit codes: 0 on pass, 1 on a failed check, 2 when the test cannot start.
+
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
 
 #include <obs.h>
 #if defined(__linux__)
@@ -114,6 +125,23 @@ bool measure(Capture &capture, std::vector<float> &left, std::vector<float> &rig
 	std::fprintf(stderr, "the source did not output %zu frames within five seconds\n", kMeasureFrames);
 	return false;
 }
+
+#if defined(_WIN32)
+// CPU time used by all threads of this process so far, in seconds. Returns a negative value on failure.
+double process_cpu_seconds()
+{
+	FILETIME creation_time, exit_time, kernel_time, user_time;
+	if (!GetProcessTimes(GetCurrentProcess(), &creation_time, &exit_time, &kernel_time, &user_time))
+		return -1.0;
+	const auto to_seconds = [](const FILETIME &time) {
+		ULARGE_INTEGER value;
+		value.LowPart = time.dwLowDateTime;
+		value.HighPart = time.dwHighDateTime;
+		return double(value.QuadPart) / 1e7;
+	};
+	return to_seconds(kernel_time) + to_seconds(user_time);
+}
+#endif
 
 int failures = 0;
 
@@ -225,6 +253,47 @@ int run_scenario(const std::string &scenario)
 			else
 				failures++;
 		}
+	} else if (scenario == "cpu-usage") {
+#if defined(_WIN32)
+		// Lets the source and libobs settle before measuring
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		{
+			std::lock_guard<std::mutex> lock(capture.mutex);
+			capture.left.clear();
+			capture.right.clear();
+		}
+		const double cpu_start = process_cpu_seconds();
+		const auto wall_start = std::chrono::steady_clock::now();
+		std::this_thread::sleep_for(std::chrono::seconds(3));
+		const double cpu_end = process_cpu_seconds();
+		const double wall =
+			std::chrono::duration<double>(std::chrono::steady_clock::now() - wall_start).count();
+		size_t frames = 0;
+		{
+			std::lock_guard<std::mutex> lock(capture.mutex);
+			frames = capture.left.size();
+		}
+		if (cpu_start < 0.0 || cpu_end < 0.0) {
+			std::fprintf(stderr, "failed to read the CPU time of the process\n");
+			obs_source_remove_audio_capture_callback(source, capture_audio, &capture);
+			obs_source_release(source);
+			return 2;
+		}
+		const double percent = (cpu_end - cpu_start) / wall * 100.0;
+		char buf[128];
+		std::snprintf(buf, sizeof(buf), "process CPU usage %.2f%% of one core is below 5%%", percent);
+		check(percent < 5.0, buf);
+		// A source that stopped outputting audio would also use little CPU
+		const double expected_frames = wall * kSampleRate;
+		std::snprintf(buf, sizeof(buf), "source output %zu frames, at least 90%% of %.0f", frames,
+			      expected_frames);
+		check(double(frames) >= expected_frames * 0.9, buf);
+#else
+		std::fprintf(stderr, "scenario cpu-usage runs on Windows only\n");
+		obs_source_remove_audio_capture_callback(source, capture_audio, &capture);
+		obs_source_release(source);
+		return 2;
+#endif
 	} else {
 		std::fprintf(stderr, "unknown scenario %s\n", scenario.c_str());
 		obs_source_remove_audio_capture_callback(source, capture_audio, &capture);
