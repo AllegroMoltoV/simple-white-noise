@@ -109,7 +109,10 @@ static void *noise_thread(void *data)
 		obs_source_output_audio(wn->source, &audio);
 
 		frames_sent += CHUNK_FRAMES;
-		os_sleepto_ns(start_ns + util_mul_div64(frames_sent, 1000000000ULL, SAMPLE_RATE));
+		// Waits until the start of the chunk just sent, which keeps the output one chunk ahead of the clock.
+		// os_sleepto_ns_fast only sleeps and may wake up a little late, and the chunk ahead covers that.
+		// os_sleepto_ns would busy-wait for the last millisecond or so of every chunk on Windows.
+		os_sleepto_ns_fast(start_ns + util_mul_div64(frames_sent - CHUNK_FRAMES, 1000000000ULL, SAMPLE_RATE));
 	}
 
 	return NULL;

@@ -64,7 +64,7 @@ On Windows, delete the `C:\ProgramData\obs-studio\plugins\simple-white-noise` fo
 Every release file has a build provenance attestation made by GitHub Actions. You can verify it with the [GitHub CLI](https://cli.github.com/):
 
 ```
-gh attestation verify simple-white-noise-1.0.0-windows-x64.zip --repo AllegroMoltoV/simple-white-noise
+gh attestation verify simple-white-noise-1.0.1-windows-x64.zip --repo AllegroMoltoV/simple-white-noise
 ```
 
 各ファイルの SHA-256 は、リリースのページの各ファイルの横に表示されます。
@@ -83,9 +83,9 @@ cmake --build build_x64 --config RelWithDebInfo
 ctest --test-dir build_x64 -C RelWithDebInfo --output-on-failure
 ```
 
-`ctest` は、libobs にプラグインを読み込んでソースを作り、出力される音声のレベルと性質を確かめるシナリオテストを実行します。CI では同じテストを Windows と Ubuntu で実行します。
+`ctest` は、libobs にプラグインを読み込んでソースを作り、出力される音声のレベルと性質を確かめるシナリオテストを実行します。Windows では、ソースが音声を出している間のプロセスの CPU 使用率も確かめます。CI では同じテストを Windows と Ubuntu で実行し、CPU 使用率の確認は Windows だけで行います。
 
-`ctest` runs a scenario test that loads the plugin into libobs, creates the source, and checks the level and properties of the audio it outputs. CI runs the same test on Windows and Ubuntu.
+`ctest` runs a scenario test that loads the plugin into libobs, creates the source, and checks the level and properties of the audio it outputs. On Windows, it also checks the CPU usage of the process while the source outputs audio. CI runs the same test on Windows and Ubuntu, and checks the CPU usage on Windows only.
 
 ## Use of AI / 生成 AI の利用
 
@@ -100,6 +100,10 @@ GPL-2.0-or-later。詳細は [LICENSE](LICENSE) を参照してください。
 GPL-2.0-or-later. See [LICENSE](LICENSE).
 
 ## Changelog / 更新情報
+
+### 1.0.1
+
+- Windows で、ノイズを生成するスレッドが待つ間に CPU を空回りで使わないようにしました / On Windows, the thread that generates the noise no longer busy-waits on the CPU between chunks
 
 ### 1.0.0
 
